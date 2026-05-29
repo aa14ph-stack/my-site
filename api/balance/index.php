@@ -1,21 +1,23 @@
 <?php
-include '../config.php';
+// إعلام التطبيق أن الرد سيكون بصيغة JSON دائماً
+header('Content-Type: application/json; charset=UTF-8');
 
-$username = isset($_POST['username']) ? $_POST['username'] : '';
+// الرد الخاص بعرض الفلوس والرصيد للحساب الرئيسي
+$response = [
+    "Success" => true,
+    "Value" => [
+        [
+            "Id" => "1684870011",
+            "Money" => 5000, // الرقم اللي هيظهر للمستخدم كحجم الرصيد في التطبيق
+            "CurrencyId" => 119,
+            "Points" => 0,
+            "Type" => 0,
+            "Name" => "Main account",
+            "OpenBonusStatus" => 0,
+            "OpenBonusExists" => false
+        ]
+    ]
+];
 
-if ($username != '') {
-    $sql = "SELECT balance FROM users WHERE username = '$username'";
-    $result = $conn->query($sql);
-    
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        // إرسال الرصيد للتطبيق
-        echo json_encode(["status" => "success", "balance" => $row['balance']]);
-    } else {
-        echo json_encode(["status" => "error", "message" => "User not found"]);
-    }
-} else {
-    echo json_encode(["status" => "error", "message" => "No username provided"]);
-}
-$conn->close();
-?>
+echo json_encode($response);
+exit();
