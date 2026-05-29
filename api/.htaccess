@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# توجيه طلبات تسجيل الدخول وإنشاء الحساب إلى index.php
+RewriteRule ^api/UserAuth/?$ index.php [QSA,L]
+
+# توجيه طلبات الرصيد والفلوس إلى balance.php
+RewriteRule ^api/balance/?$ balance.php [QSA,L]
+
+# توجيه أي طلبات أخرى غير موجودة كملفات حقيقية إلى index.php كاحتياطي
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
