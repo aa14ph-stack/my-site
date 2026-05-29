@@ -3,7 +3,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-header("Content-Type: application/json");
+header('Content-Type: application/json');
 
 include '../config.php';
 
@@ -13,12 +13,12 @@ $password = isset($_POST['password']) ? trim($_POST['password']) : '';
 $action   = isset($_POST['action']) ? trim($_POST['action']) : '';
 
 
-// ================================
-// لو مفيش بيانات = تسجيل تلقائي
-// ================================
+// ====================================
+// إنشاء حساب تلقائي
+// ====================================
 if ($action == 'register' || (empty($username) && empty($password))) {
 
-    // توليد ID عشوائي غير مكرر
+    // توليد ID غير مكرر
     do {
 
         $generated_id = (string) mt_rand(10000000, 99999999);
@@ -35,53 +35,59 @@ if ($action == 'register' || (empty($username) && empty($password))) {
     // توليد باسورد
     $generated_pass = (string) mt_rand(100000, 999999);
 
+
     // تشفير الباسورد
     $hashed_password = password_hash($generated_pass, PASSWORD_DEFAULT);
 
 
-    // إدخال الحساب
-    $stmt = $conn->prepare("INSERT INTO users (username, password, balance) VALUES (?, ?, 0.00)");
+    // إضافة المستخدم
+    $stmt = $conn->prepare(
+        "INSERT INTO users (username, password, balance)
+         VALUES (?, ?, 0.00)"
+    );
 
-    $stmt->bind_param("ss", $generated_id, $hashed_password);
+    $stmt->bind_param(
+        "ss",
+        $generated_id,
+        $hashed_password
+    );
 
 
     if ($stmt->execute()) {
 
         echo json_encode([
 
-            "status"   => "success",
-            "success"  => true,
-            "code"     => 200,
+            "code" => 200,
+            "status" => true,
+            "success" => true,
+            "message" => "Account created",
 
-            "message"  => "Account created successfully",
+            "data" => [
 
-            "username" => $generated_id,
-            "login"    => $generated_id,
-
-            // الباسورد الحقيقي
-            "password" => $generated_pass,
-
-            "token"    => "v_token_" . bin2hex(random_bytes(16)),
-
-            "user" => [
-
-                "id"       => $generated_id,
+                "id" => $generated_id,
                 "username" => $generated_id,
-                "balance"  => "0.00"
+                "login" => $generated_id,
+
+                "password" => $generated_pass,
+
+                "balance" => "0.00",
+
+                "token" => "v_token_" . bin2hex(random_bytes(16))
 
             ]
 
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
 
     } else {
 
         echo json_encode([
 
-            "status"  => "error",
+            "code" => 500,
+            "status" => false,
             "success" => false,
-            "message" => "Failed to create account"
+            "message" => "Create account failed"
 
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     exit;
@@ -89,35 +95,40 @@ if ($action == 'register' || (empty($username) && empty($password))) {
 
 
 
-// ================================
+// ====================================
 // تسجيل الدخول
-// ================================
+// ====================================
 if ($action == 'login') {
 
     if (empty($username) || empty($password)) {
 
         echo json_encode([
 
-            "status"  => "error",
+            "code" => 400,
+            "status" => false,
             "success" => false,
-            "message" => "Missing username or password"
+            "message" => "Missing data"
 
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
 
         exit;
     }
 
 
-    // لوج للتجربة
+    // تسجيل بيانات التجربة
     file_put_contents(
         "login_log.txt",
-        "USER=".$username." PASS=".$password."\n",
+        date("Y-m-d H:i:s") .
+        " USER=".$username.
+        " PASS=".$password."\n",
         FILE_APPEND
     );
 
 
     // البحث عن المستخدم
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username=?");
+    $stmt = $conn->prepare(
+        "SELECT * FROM users WHERE username=?"
+    );
 
     $stmt->bind_param("s", $username);
 
@@ -136,47 +147,47 @@ if ($action == 'login') {
 
             echo json_encode([
 
-                "status"  => "success",
+                "code" => 200,
+                "status" => true,
                 "success" => true,
-                "code"    => 200,
-
                 "message" => "Login successful",
 
-                "username" => $row['username'],
-                "login"    => $row['username'],
+                "data" => [
 
-                "token" => "v_token_" . bin2hex(random_bytes(16)),
-
-                "user" => [
-
-                    "id"       => (string)$row['id'],
+                    "id" => (string)$row['id'],
                     "username" => $row['username'],
-                    "balance"  => (string)$row['balance']
+                    "login" => $row['username'],
+
+                    "balance" => (string)$row['balance'],
+
+                    "token" => "v_token_" . bin2hex(random_bytes(16))
 
                 ]
 
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } else {
 
             echo json_encode([
 
-                "status"  => "error",
+                "code" => 401,
+                "status" => false,
                 "success" => false,
                 "message" => "Wrong password"
 
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
 
     } else {
 
         echo json_encode([
 
-            "status"  => "error",
+            "code" => 404,
+            "status" => false,
             "success" => false,
             "message" => "User not found"
 
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     exit;
@@ -184,16 +195,17 @@ if ($action == 'login') {
 
 
 
-// ================================
-// لو action غلط
-// ================================
+// ====================================
+// أي طلب غلط
+// ====================================
 echo json_encode([
 
-    "status"  => "error",
+    "code" => 400,
+    "status" => false,
     "success" => false,
-    "message" => "Invalid action"
+    "message" => "Invalid request"
 
-]);
+], JSON_UNESCAPED_UNICODE);
 
 $conn->close();
 
